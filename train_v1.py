@@ -3,14 +3,15 @@ import numpy as np
 import datetime
 
 path = '/media/nejc/Prostor/Dropbox/dev/Data/'
+#path = '/media/nejc/Prostor/AI/data/kelag_32_MSS/'
 
 filename_train = '01'
-filename_test = '29'
+filename_test = '01'
 
 featureset_train = np.load(path + filename_train + '.npy')
 featureset_test = np.load(path + filename_test + '.npy')
 
-train_x = list(featureset_train[:,0])
+train_x = tf.convert_to_tensor(list(featureset_train[:,0]))
 train_y = list(featureset_train[:,1])
 test_x = list(featureset_test[:,0])
 test_y = list(featureset_test[:,1])
@@ -19,12 +20,14 @@ test_y = list(featureset_test[:,1])
 #test_x = test_x.reshape(len(test_x), 40, 40, 3)
 
 n_classes = 2
-batch_size = 16
+batch_size = 256
 batch_size_eval = 1024
-hm_epochs = 1
+hm_epochs = 10
+img_size = 64
+img_depth = 3
 
 x = tf.placeholder(tf.float32,
-                shape = (None, 40, 40, 3))
+                shape = (None, img_size, img_size, img_depth))
 
 y = tf.placeholder(tf.float32, shape = (None, n_classes))
 
@@ -43,9 +46,9 @@ def maxpool2d(x):
 
 
 def convolutional_neural_network(x):
-    weights = {'W_conv1':tf.Variable(tf.random_normal([3,3,3,32])),
+    weights = {'W_conv1':tf.Variable(tf.random_normal([3,3,img_depth,32])),
                'W_conv2':tf.Variable(tf.random_normal([5,5,32,64])),
-               'W_fc':tf.Variable(tf.random_normal([40 // 4 * 40 // 4 * 64, 512])),
+               'W_fc':tf.Variable(tf.random_normal([img_size // 4 * img_size // 4 * 64, 512])),
                'out':tf.Variable(tf.random_normal([512, n_classes]))}
 
     biases = {'b_conv1':tf.Variable(tf.random_normal([32])),
@@ -61,7 +64,7 @@ def convolutional_neural_network(x):
     conv2 = tf.nn.relu(conv2d(conv1, weights['W_conv2']) + biases['b_conv2'])
     conv2 = maxpool2d(conv2)
 
-    fc = tf.reshape(conv2,[-1, 40 // 4 * 40 // 4 * 64])
+    fc = tf.reshape(conv2,[-1, img_size // 4 * img_size // 4 * 64])
     fc = tf.nn.relu(tf.matmul(fc, weights['W_fc']) + biases['b_fc'])
     fc = tf.nn.dropout(fc, keep_rate)
 
@@ -98,7 +101,7 @@ def train_neural_network(x):
 
             time_epoch = datetime.datetime.now() - time_start
             print('Epoch', epoch, 'completed out of',hm_epochs, 'loss:',epoch_loss )
-            print('On epoch in {0} . Time to graduation: {1}'.format(time_epoch, (hm_epochs-epoch)*time_epoch))
+            print('On epoch in {0} . Time to graduation: {1}'.format(time_epoch, (hm_epochs-epoch-1)*time_epoch))
 
         correct = tf.equal(tf.argmax(prediction, 1), tf.argmax(y, 1))
 

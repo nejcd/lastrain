@@ -18,7 +18,7 @@ test_y = list(featureset_test[:,1])
 
 n_classes = 2
 batch_size = 512
-batch_size_eval = 512
+batch_size_eval = 1024
 hm_epochs = 10
 img_size = 32
 img_depth = 3
@@ -44,23 +44,15 @@ def maxpool2d(x):
 
 def convolutional_neural_network(x):
     weights = {'W_conv1':tf.Variable(tf.random_normal([3,3,img_depth,64])),
-               'W_conv2':tf.Variable(tf.random_normal([3,3,64,128])),
-               'W_conv3':tf.Variable(tf.random_normal([3,3,128,128])),
-               'W_conv4':tf.Variable(tf.random_normal([3,3,128,256])),
-               'W_conv5':tf.Variable(tf.random_normal([3,3,256,256])),
-               'W_conv6':tf.Variable(tf.random_normal([3,3,256,256])),
-               'W_fc1':tf.Variable(tf.random_normal([img_size // 8 * img_size // 8 * 256, 4096])),
-               'W_fc2':tf.Variable(tf.random_normal([4096, 4096])),
-               'out':tf.Variable(tf.random_normal([4096, n_classes]))}
+               'W_conv2':tf.Variable(tf.random_normal([3,3,64,64])),
+               'W_conv3':tf.Variable(tf.random_normal([3,3,64,128])),
+               'W_fc':tf.Variable(tf.random_normal([img_size // 4 * img_size // 4 * 128, 1024])),
+               'out':tf.Variable(tf.random_normal([1024, n_classes]))}
 
     biases = {'b_conv1':tf.Variable(tf.random_normal([64])),
-              'b_conv2':tf.Variable(tf.random_normal([128])),
+              'b_conv2':tf.Variable(tf.random_normal([64])),
               'b_conv3':tf.Variable(tf.random_normal([128])),
-              'b_conv4':tf.Variable(tf.random_normal([256])),
-              'b_conv5':tf.Variable(tf.random_normal([256])),
-              'b_conv6':tf.Variable(tf.random_normal([256])),
-               'b_fc1':tf.Variable(tf.random_normal([4096])),
-               'b_fc2':tf.Variable(tf.random_normal([4096])),
+               'b_fc':tf.Variable(tf.random_normal([1024])),
                'out':tf.Variable(tf.random_normal([n_classes]))}
 
     #x = tf.reshape(x, shape=[-1, 40, 40, 3])
@@ -72,20 +64,12 @@ def convolutional_neural_network(x):
     conv2 = maxpool2d(conv2)
 
     conv3 = tf.nn.relu(tf.nn.sigmoid(conv2d(conv2, weights['W_conv3']) + biases['b_conv3']))
-    conv4 = tf.nn.relu(tf.nn.sigmoid(conv2d(conv3, weights['W_conv4']) + biases['b_conv4']))
-    conv5 = tf.nn.relu(tf.nn.sigmoid(conv2d(conv4, weights['W_conv5']) + biases['b_conv5']))
 
-    conv6 = tf.nn.relu(tf.nn.sigmoid(conv2d(conv5, weights['W_conv6']) + biases['b_conv6']))
-    conv6 = maxpool2d(conv6)
+    fc = tf.reshape(conv3,[-1, img_size // 4 * img_size // 4 * 128])
+    fc = tf.nn.relu(tf.matmul(fc, weights['W_fc']) + biases['b_fc'])
+    fc = tf.nn.dropout(fc, keep_rate)
 
-    fc1 = tf.reshape(conv6,[-1, img_size // 8 * img_size // 8 * 256])
-    fc1 = tf.nn.relu(tf.matmul(fc1, weights['W_fc1']) + biases['b_fc1'])
-    fc1 = tf.nn.dropout(fc1, keep_rate)
-
-    fc2 = tf.nn.relu(tf.matmul(fc1, weights['W_fc2']) + biases['b_fc2'])
-    fc2 = tf.nn.dropout(fc2, keep_rate)
-
-    output = tf.matmul(fc2, weights['out']) + biases['out']
+    output = tf.matmul(fc, weights['out']) + biases['out']
 
     return output
 
