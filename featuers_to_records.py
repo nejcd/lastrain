@@ -23,39 +23,47 @@
 import numpy as np
 import os, glob
 import scipy.misc
-import tensorflow
+import tensorflow as tf
+
+def _int64_feature(value):
+  return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
+
+def _bytes_feature(value):
+	return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
 def convert_to(data_set, name):
   """Converts a dataset to tfrecords."""
-  images = data_set.images
-  labels = data_set.labels
-  num_examples = data_set.num_examples
+  images = list(data_set[:,0])
+  labels = list(data_set[:,1])
+  num_examples = len(images)
 
-  if images.shape[0] != num_examples:
+  if len(labels) != num_examples:
     raise ValueError('Images size %d does not match label size %d.' %
-                     (images.shape[0], num_examples))
-  rows = images.shape[1]
-  cols = images.shape[2]
-  depth = images.shape[3]
+                     (len(labels), num_examples))
+  rows = np.shape(images)[1]
+  cols = np.shape(images)[2]
+  depth = np.shape(images)[3]
+  num_of_labels = len(labels)
 
-  filename = os.path.join(FLAGS.directory, name + '.tfrecords')
+  filename = os.path.join(path , name + '.tfrecords')
   print('Writing', filename)
   writer = tf.python_io.TFRecordWriter(filename)
   for index in range(num_examples):
     image_raw = images[index].tostring()
+    labels_raw = labels[index].tostring()
     example = tf.train.Example(features=tf.train.Features(feature={
         'height': _int64_feature(rows),
         'width': _int64_feature(cols),
         'depth': _int64_feature(depth),
-        'label': _int64_feature(int(labels[index])),
+        'num_of_labels': _int64_feature(num_of_labels),
+        'label': _bytes_feature(labels_raw),
         'image_raw': _bytes_feature(image_raw)}))
     writer.write(example.SerializeToString())
     writer.close()
 
 
-if __name__ = '__main__':
+if __name__ == '__main__':
 	path = '/media/nejc/Prostor/Dropbox/dev/Data/'
-    filename = '01'
-    features = np.load(path + filename + '.npy')
-    
-    convert_to(features, filename)
+	name = '01'
+	features = np.load(path + name + '.npy')
+	convert_to(features, name)

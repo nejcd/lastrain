@@ -1,9 +1,11 @@
 import tensorflow as tf
 import numpy as np
 import datetime
-import random
+import laspy, laspy.file
+import las2feature
 
-path = '/media/nejc/Prostor/AI/data/test_arranged_class_labels/class_5-6_balanced_MMM/'
+
+path = '/media/nejc/Prostor/AI/data/test_arranged_class_labels/all_classes/'
 
 filename_train = 'train_k03.las'
 filename_test = 'train_k02.las'
@@ -22,7 +24,7 @@ test_y = list(featureset_test[:,1])
 n_classes = len(train_y[1])
 batch_size = 512
 batch_size_eval = 1024
-hm_epochs = 20
+hm_epochs = 2
 img_size = 32
 img_depth = 3
 
@@ -31,10 +33,7 @@ x = tf.placeholder(tf.float32,
 
 y = tf.placeholder(tf.float32, shape = (None, n_classes))
 
-#x = tf.cast(train_x, tf.float32)
-#y = tf.cast(train_y, tf.float32)
-
-keep_rate = 0.9
+keep_rate = 0.8
 keep_prob = tf.placeholder(tf.float32)
 
 def conv2d(x, W):
@@ -72,55 +71,27 @@ def convolutional_neural_network(x):
 
     return output
 
-def train_neural_network(x):
-    prediction = convolutional_neural_network(x)
-    cost = tf.reduce_mean( tf.nn.softmax_cross_entropy_with_logits(prediction,y) )
-    optimizer = tf.train.AdamOptimizer(learning_rate=0.005).minimize(cost)
-    
+def predict(x, feature):
+    convolutional_neural_network(x)
     saver = tf.train.Saver()
     with tf.Session() as sess:
         sess.run(tf.initialize_all_variables())
+        saver.restore(sess, 'my-model')
+        prediction = sess.run(y, feature)
+    return prediction
 
-        for epoch in range(hm_epochs):
-            epoch_loss = 0
 
-            time_start = datetime.datetime.now()
 
-            i = 0
-            while i < len(train_x):
-                start = i 
-                end = i + batch_size
+path = '/media/nejc/Prostor/AI/data/test_arranged_class_labels/'
+filename = 'train_k03'
+las = laspy.file.File(path + filename + '.las', mode='r')
+pointsin = np.vstack((las.x, las.y, las.z)).transpose()
+extend = las2feature.get_extend(las)
 
-                batch_x = np.array(train_x[start:end])
-                batch_y = np.array(train_y[start:end])
+features = las2feature.create_featureset(pointsin, extend)
 
-                _, c = sess.run([optimizer, cost], feed_dict={x: batch_x, y: batch_y})
-                epoch_loss += c
+labels = []
+for feature in features:
+    print (predict(x, feature))
 
-                i += batch_size
-
-            time_epoch = datetime.datetime.now() - time_start
-            print('Epoch', epoch, 'completed out of',hm_epochs, 'loss:',epoch_loss )
-            print('On epoch in {0} . Time to graduation: {1}'.format(time_epoch, (hm_epochs-epoch-1)*time_epoch))
-
-        correct = tf.equal(tf.argmax(prediction, 1), tf.argmax(y, 1))
-
-        accuracy = tf.reduce_mean(tf.cast(correct, 'float'))
-
-        i = 0
-        n = 0 
-        acc = 0
-        while i < len(test_x):
-            start = i
-            end = i + batch_size_eval
-            batch_x_test = np.array(test_x[start:end])
-            batch_y_test = np.array(test_y[start:end])
-            acc = acc + accuracy.eval({x:batch_x_test, y:batch_y_test})
-            n += 1
-            i += batch_size_eval
-
-        print("Accuracy: ", acc/n)
-
-        saver.save(sess, 'my-model')
-
-train_neural_network(x)
+print labels

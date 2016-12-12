@@ -3,20 +3,20 @@ import numpy as np
 import datetime
 
 #path = '/media/nejc/Prostor/Dropbox/dev/Data/'
-path = '/media/nejc/Prostor/AI/data/kelag_001/'
+path = '/media/nejc/Prostor/AI/data/test_arranged_class_labels/class_5-6_balanced/'
 
-filename_train = 'merged'
-filename_test = 'kel_class_mgi_000016.las'
+filename_train = 'train_k01.las'
+filename_test = 'train_k02.las'
 
 featureset_train = np.load(path + filename_train + '.npy')
 featureset_test = np.load(path + filename_test + '.npy')
 
-train_x = list(featureset_train[:,0])
+train_x = list(featureset_train[:,0] / 255)
 train_y = list(featureset_train[:,1])
-test_x = list(featureset_test[:,0])
+test_x = list(featureset_test[:,0] / 255)
 test_y = list(featureset_test[:,1])
 
-n_classes = 2
+n_classes = len(train_y[1])
 batch_size = 512
 batch_size_eval = 1024
 hm_epochs = 10
@@ -31,7 +31,7 @@ y = tf.placeholder(tf.float32, shape = (None, n_classes))
 #x = tf.cast(train_x, tf.float32)
 #y = tf.cast(train_y, tf.float32)
 
-keep_rate = 0.9
+keep_rate = 0.8
 keep_prob = tf.placeholder(tf.float32)
 
 def conv2d(x, W):
@@ -55,8 +55,6 @@ def convolutional_neural_network(x):
                'b_fc':tf.Variable(tf.random_normal([1024])),
                'out':tf.Variable(tf.random_normal([n_classes]))}
 
-    #x = tf.reshape(x, shape=[-1, 40, 40, 3])
-
     conv1 = tf.nn.relu(tf.nn.sigmoid(conv2d(x, weights['W_conv1']) + biases['b_conv1']))
     conv1 = maxpool2d(conv1)
     
@@ -78,7 +76,7 @@ def train_neural_network(x):
     cost = tf.reduce_mean( tf.nn.softmax_cross_entropy_with_logits(prediction,y) )
     optimizer = tf.train.AdamOptimizer().minimize(cost)
     
-    
+    saver = tf.train.Saver()
     with tf.Session() as sess:
         sess.run(tf.initialize_all_variables())
         print('Start learning')
@@ -121,5 +119,7 @@ def train_neural_network(x):
             i += batch_size_eval
 
         print("Accuracy: ", acc/n)
+
+        saver.save(sess, 'model_train_v3')
 
 train_neural_network(x)

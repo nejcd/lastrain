@@ -3,20 +3,20 @@ import numpy as np
 import datetime
 
 #path = '/media/nejc/Prostor/Dropbox/dev/Data/'
-path = '/media/nejc/Prostor/AI/data/kelag_001/'
+path = '/media/nejc/Prostor/AI/data/test_arranged_class_labels/class_5-6_balanced/'
 
-filename_train = 'merged'
-filename_test = 'kel_class_mgi_000016.las'
+filename_train = 'train_k01.las'
+filename_test = 'train_k02.las'
 
 featureset_train = np.load(path + filename_train + '.npy')
 featureset_test = np.load(path + filename_test + '.npy')
 
-train_x = list(featureset_train[:,0])
+train_x = list(featureset_train[:,0] / 255)
 train_y = list(featureset_train[:,1])
-test_x = list(featureset_test[:,0])
+test_x = list(featureset_test[:,0] / 255)
 test_y = list(featureset_test[:,1])
 
-n_classes = 2
+n_classes = len(train_y[1])
 batch_size = 512
 batch_size_eval = 512
 hm_epochs = 10
@@ -94,7 +94,7 @@ def train_neural_network(x):
     cost = tf.reduce_mean( tf.nn.softmax_cross_entropy_with_logits(prediction,y) )
     optimizer = tf.train.AdamOptimizer().minimize(cost)
     
-    
+    saver = tf.train.Saver()
     with tf.Session() as sess:
         sess.run(tf.initialize_all_variables())
         print('Start learning')
@@ -137,5 +137,6 @@ def train_neural_network(x):
             i += batch_size_eval
 
         print("Accuracy: ", acc/n)
+        saver.save(sess, 'model_train_v2')
 
 train_neural_network(x)
