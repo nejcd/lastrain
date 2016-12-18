@@ -22,7 +22,7 @@ test_y = list(featureset_test[:,1])
 n_classes = len(train_y[1])
 batch_size = 512
 batch_size_eval = 1024
-hm_epochs = 20
+hm_epochs = 5
 img_size = 32
 img_depth = 3
 
@@ -79,7 +79,7 @@ def train_neural_network(x):
     
     saver = tf.train.Saver()
     with tf.Session() as sess:
-        sess.run(tf.initialize_all_variables())
+        sess.run(tf.global_variables_initializer())
 
         for epoch in range(hm_epochs):
             epoch_loss = 0
@@ -121,6 +121,6 @@ def train_neural_network(x):
 
         print("Accuracy: ", acc/n)
 
-        saver.save(sess, 'my-model')
+        saver.save(sess, 'my-model_v1')
 
 train_neural_network(x)

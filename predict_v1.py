@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 import datetime
 import laspy, laspy.file
-import las2feature
+import las2featureMMM as las2feature
 
 
 path = '/media/nejc/Prostor/AI/data/test_arranged_class_labels/all_classes/'
@@ -17,9 +17,6 @@ train_x = list(featureset_train[:,0] / 255)
 train_y = list(featureset_train[:,1])
 test_x = list(featureset_test[:,0] / 255)
 test_y = list(featureset_test[:,1])
-
-#train_x = train_x.reshape(len(train_x), 40, 40, 3)
-#test_x = test_x.reshape(len(test_x), 40, 40, 3)
 
 n_classes = len(train_y[1])
 batch_size = 512
@@ -55,8 +52,6 @@ def convolutional_neural_network(x):
                'b_fc':tf.Variable(tf.random_normal([512])),
                'out':tf.Variable(tf.random_normal([n_classes]))}
 
-    #x = tf.reshape(x, shape=[-1, 40, 40, 3])
-
     conv1 = tf.nn.relu(tf.nn.sigmoid(conv2d(x, weights['W_conv1']) + biases['b_conv1']))
     conv1 = maxpool2d(conv1)
     
@@ -71,27 +66,37 @@ def convolutional_neural_network(x):
 
     return output
 
-def predict(x, feature):
-    convolutional_neural_network(x)
+def predict(las, batch_size=1024):
+    pointsin = np.vstack((las.x, las.y, las.z)).transpose()
+    extend = las2feature.get_extend(las)
+    grid = las2feature.create_main_grid(pointsin, extend)
+    
+    labels = []
+    prediction = convolutional_neural_network(x)
     saver = tf.train.Saver()
     with tf.Session() as sess:
-        sess.run(tf.initialize_all_variables())
-        saver.restore(sess, 'my-model')
-        prediction = sess.run(y, feature)
+        sess.run(tf.global_variables_initializer())
+        try:
+            restorer = tf.train.import_meta_graph('my-model_v1')
+            restorer.restore(sess, tf.train.latest_checkpoint('./'))
+        except Exception as e:
+            print(str(e))
+
+        for point in pointsin:
+            feature = np.array(las2feature.create_feature([point], grid, extend))
+            labels.append(int(sess.run(tf.argmax(prediction.eval(feed_dict={x:feature}), 1))))
+        
     return prediction
 
+path = '/media/nejc/Prostor/AI/data/'
+filename = '01'
+las = laspy.file.File(path + filename + '.las', mode='rw')
 
-
-path = '/media/nejc/Prostor/AI/data/test_arranged_class_labels/'
-filename = 'train_k03'
-las = laspy.file.File(path + filename + '.las', mode='r')
-pointsin = np.vstack((las.x, las.y, las.z)).transpose()
-extend = las2feature.get_extend(las)
-
-features = las2feature.create_featureset(pointsin, extend)
-
-labels = []
-for feature in features:
-    print (predict(x, feature))
+labels = predict(las)
 
 print labels
+
+las.Classification = labels
+las.close()
+
+
