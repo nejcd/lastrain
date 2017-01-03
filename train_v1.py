@@ -3,10 +3,15 @@ import numpy as np
 import datetime
 import random
 
-path = '/media/nejc/Prostor/AI/data/test_arranged_class_labels/class_5-6_balanced_MMM/'
+#path = '/media/nejc/Prostor/AI/data/test_arranged_class_labels/class_5-6_balanced_MMM/'
 
-filename_train = 'train_k03.las'
-filename_test = 'train_k02.las'
+#filename_train = 'train_k01.las'
+#filename_test = 'train_k02.las'
+
+path = '/media/nejc/Prostor/AI/data/test_arranged_class_labels/class_2_64x64_balanced_MMM_kelag_all/'
+
+filename_train = 'kel_class_mgi_000001.las'
+filename_test = 'test'
 
 featureset_train = np.load(path + filename_train + '.npy')
 featureset_test = np.load(path + filename_test + '.npy')
@@ -20,10 +25,10 @@ test_y = list(featureset_test[:,1])
 #test_x = test_x.reshape(len(test_x), 40, 40, 3)
 
 n_classes = len(train_y[1])
-batch_size = 512
-batch_size_eval = 1024
-hm_epochs = 5
-img_size = 32
+batch_size = 128
+batch_size_eval = 256
+hm_epochs = 12
+img_size = 64
 img_depth = 3
 
 x = tf.placeholder(tf.float32,
@@ -58,7 +63,7 @@ def convolutional_neural_network(x):
 
     #x = tf.reshape(x, shape=[-1, 40, 40, 3])
 
-    conv1 = tf.nn.relu(tf.nn.sigmoid(conv2d(x, weights['W_conv1']) + biases['b_conv1']))
+    conv1 = tf.nn.relu(conv2d(x, weights['W_conv1']) + biases['b_conv1'])
     conv1 = maxpool2d(conv1)
     
     conv2 = tf.nn.relu(conv2d(conv1, weights['W_conv2']) + biases['b_conv2'])
